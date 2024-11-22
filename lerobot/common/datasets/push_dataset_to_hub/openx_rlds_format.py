@@ -52,7 +52,10 @@ from lerobot.common.datasets.utils import (
 )
 from lerobot.common.datasets.video_utils import VideoFrame, encode_video_frames
 
-with open("lerobot/common/datasets/push_dataset_to_hub/openx/configs.yaml") as f:
+# get the absolute path of the lerobot/common/datasets/push_dataset_to_hub/openx/configs.yaml
+yml_path = Path(__file__).parent / "openx" / "configs.yaml"
+# to load the openx dataset configs
+with open(yml_path) as f:
     _openx_list = yaml.safe_load(f)
 
 OPENX_DATASET_CONFIGS = _openx_list["OPENX_DATASET_CONFIGS"]
@@ -109,6 +112,8 @@ def load_from_raw(
     episodes: list[int] | None = None,
     encoding: dict | None = None,
     openx_dataset_name: str | None = None,
+    split: str = "all",
+    topk: int | None = None,
 ):
     """
     Args:
@@ -119,10 +124,17 @@ def load_from_raw(
         episodes (list[int] | None, optional): _description_. Defaults to None.
     """
     ds_builder = tfds.builder_from_directory(str(raw_dir))
-    dataset = ds_builder.as_dataset(
-        split="all",
-        decoders={"steps": tfds.decode.SkipDecoding()},
-    )
+    if split == "all":
+        dataset = ds_builder.as_dataset(
+            split="all",
+            decoders={"steps": tfds.decode.SkipDecoding()},
+        )
+    else:
+        assert(split == "train" or split == "test")
+        dataset = ds_builder.as_dataset(
+            split=f"{split}[:{topk}]",  # only load the first topk episodes
+            decoders={"steps": tfds.decode.SkipDecoding()},
+        )
 
     dataset_info = ds_builder.info
     print("dataset_info: ", dataset_info)
@@ -273,10 +285,11 @@ def load_from_raw(
         ep_dict["next.reward"] = rewards
         ep_dict["next.done"] = done
 
-        path_ep_dict = tmp_ep_dicts_dir.joinpath(
-            "ep_dict_" + "0" * (10 - len(str(ep_idx))) + str(ep_idx) + ".pt"
-        )
-        torch.save(ep_dict, path_ep_dict)
+        # Do not cache it.
+        # path_ep_dict = tmp_ep_dicts_dir.joinpath(
+        #     "ep_dict_" + "0" * (10 - len(str(ep_idx))) + str(ep_idx) + ".pt"
+        # )
+        # torch.save(ep_dict, path_ep_dict)
 
         ep_dicts.append(ep_dict)
 
