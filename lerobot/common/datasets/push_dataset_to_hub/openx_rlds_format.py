@@ -113,7 +113,8 @@ def load_from_raw(
     encoding: dict | None = None,
     openx_dataset_name: str | None = None,
     split: str = "all",
-    topk: int | None = None,
+    start: int = 0,
+    end: int = -1,
 ):
     """
     Args:
@@ -132,7 +133,7 @@ def load_from_raw(
     else:
         assert(split == "train" or split == "test")
         dataset = ds_builder.as_dataset(
-            split=f"{split}[:{topk}]",  # only load the first topk episodes
+            split=f"{split}[{start}:{end}]",  # only load the first topk episodes
             decoders={"steps": tfds.decode.SkipDecoding()},
         )
 
